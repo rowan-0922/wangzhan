@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>网址分类柜</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1E2125;
+    --ink-soft:#2A2E33;
+    --ink-line:#3A3F45;
+    --card:#EFE7D6;
+    --card-edge:#D8CBA8;
+    --teal:#3E7C74;
+    --teal-deep:#2F6058;
+    --amber:#C98A3D;
+    --ink-text:#2A2620;
+    --pale:#E7E2D2;
+    --muted:#9CA3A6;
+    --danger:#A85B4A;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink);
+    color:var(--pale);
+    font-family:'Inter',system-ui,sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:560px;
+    margin:0 auto;
+    padding:28px 18px 60px;
+  }
+  header{margin-bottom:22px;}
+  h1{
+    font-family:'Special Elite',monospace;
+    font-size:26px;
+    letter-spacing:0.5px;
+    margin:0 0 6px;
+    color:var(--pale);
+  }
+  .sub{font-size:13px;color:var(--muted);margin:0 0 10px;}
+  .meta{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);letter-spacing:0.3px;}
+
+  .slot{
+    background:var(--ink-soft);
+    border:1px solid var(--ink-line);
+    border-radius:10px;
+    padding:16px;
+    margin-bottom:26px;
+    box-shadow:inset 0 2px 6px rgba(0,0,0,0.35);
+  }
+  .slot input{
+    width:100%;
+    background:var(--card);
+    color:var(--ink-text);
+    border:1px solid var(--card-edge);
+    border-radius:6px;
+    padding:11px 12px;
+    font-size:15px;
+    font-family:'Inter',sans-serif;
+    margin-bottom:9px;
+  }
+  .slot input::placeholder{color:#8A8270;}
+  input:focus, select:focus, button:focus, summary:focus{
+    outline:2px solid var(--amber);
+    outline-offset:1px;
+  }
+  .row{display:flex;align-items:center;gap:8px;margin-bottom:11px;}
+  .vpn-toggle{
+    display:flex;align-items:center;gap:7px;
+    font-size:12.5px;color:var(--pale);margin-bottom:11px;cursor:pointer;
+  }
+  #vpn-checkbox{
+    width:16px;height:16px;margin:0;padding:0;
+    accent-color:var(--amber);background:none;border:1px solid var(--ink-line);
+  }
+  #suggest-status{flex:1;font-size:12.5px;color:var(--muted);line-height:1.4;}
+  #suggest-status.matched{color:var(--teal);}
+  #suggest-status.unmatched{color:var(--amber);}
+  select{
+    background:var(--card);
+    color:var(--ink-text);
+    border:1px solid var(--card-edge);
+    border-radius:6px;
+    padding:8px 8px;
+    font-size:13px;
+    font-family:'Inter',sans-serif;
+    max-width:120px;
+  }
+  .btn{
+    border:none;border-radius:6px;padding:11px 16px;
+    font-family:'Inter',sans-serif;font-size:14.5px;font-weight:600;
+    cursor:pointer;transition:transform 0.08s ease, opacity 0.15s ease;
+  }
+  .btn:active{transform:scale(0.97);}
+  .btn-primary{background:var(--teal);color:#F2F8F6;width:100%;}
+  .btn-primary:hover{background:var(--teal-deep);}
+  .btn-ghost{background:transparent;color:var(--pale);border:1px solid var(--ink-line);}
+  .btn-danger{background:transparent;color:var(--danger);border:1px solid var(--danger);}
+  #error-flash{font-size:12.5px;color:var(--danger);margin-top:6px;min-height:0;}
+
+  #drawers{margin-bottom:18px;}
+  .empty-msg{
+    font-size:13.5px;color:var(--muted);text-align:center;
+    padding:30px 10px;border:1px dashed var(--ink-line);border-radius:10px;
+  }
+  details.drawer{
+    background:var(--ink-soft);border:1px solid var(--ink-line);
+    border-radius:8px;margin-bottom:10px;overflow:hidden;
+  }
+  summary.drawer__head{
+    list-style:none;cursor:pointer;padding:13px 14px;
+    display:flex;align-items:baseline;gap:9px;user-select:none;
+  }
+  summary.drawer__head::-webkit-details-marker{display:none;}
+  summary.drawer__head::before{content:'▸';color:var(--amber);font-size:12px;transition:transform 0.15s ease;}
+  details[open] > summary.drawer__head::before{transform:rotate(90deg);}
+  .drawer__name{font-family:'Special Elite',monospace;font-size:15.5px;color:var(--pale);}
+  .drawer__tag{font-size:11.5px;color:var(--muted);flex:1;}
+  .drawer__count{
+    font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--amber);
+    background:rgba(201,138,61,0.12);border-radius:10px;padding:1px 8px;
+  }
+  .drawer__body{padding:4px 10px 12px;display:flex;flex-direction:column;gap:8px;}
+
+  .card{
+    background:var(--card);color:var(--ink-text);
+    border:1px solid var(--card-edge);border-radius:6px;padding:10px 12px;
+  }
+  .card.just-added{animation:pulse 1.3s ease-out;}
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(201,138,61,0.55);}
+    100%{box-shadow:0 0 0 10px rgba(201,138,61,0);}
+  }
+  .card__top{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
+  .card__domain{
+    font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;
+    color:var(--ink-text);text-decoration:none;border-bottom:1px solid var(--card-edge);
+  }
+  .badge-vpn{
+    font-family:'JetBrains Mono',monospace;font-size:10px;color:#fff;
+    background:var(--amber);border-radius:4px;padding:1px 5px;letter-spacing:0.3px;
+  }
+  .card__copy, .card__edit{
+    margin-left:0;background:none;border:1px solid var(--card-edge);
+    border-radius:5px;color:#5C5642;font-size:12px;cursor:pointer;
+    line-height:1;padding:3px 7px;
+  }
+  .card__copy{margin-left:auto;}
+  .card__copy:hover, .card__edit:hover{border-color:#9A8F73;color:var(--ink-text);}
+  .card__url{font-size:12px;color:#5C5642;word-break:break-all;margin-bottom:4px;}
+  .card__note{font-size:13px;color:var(--ink-text);margin-bottom:6px;}
+  .card__foot{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .card__cat-tag{
+    font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--teal-deep);
+    background:rgba(62,124,116,0.12);border-radius:4px;padding:1px 6px;
+  }
+  .card__date{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#9A8F73;}
+
+  /* 编辑模式 */
+  .card.editing{border-color:var(--amber);}
+  .card-edit-input{
+    width:100%;background:#fff;color:var(--ink-text);
+    border:1px solid var(--card-edge);border-radius:5px;
+    padding:7px 9px;font-size:13px;font-family:'Inter',sans-serif;margin-bottom:7px;
+  }
+  .card-edit-row{display:flex;gap:8px;margin-bottom:8px;align-items:center;}
+  .edit-vpn-row{
+    display:flex;align-items:center;gap:7px;
+    font-size:12.5px;color:var(--ink-text);margin-bottom:8px;cursor:pointer;
+  }
+  .edit-vpn-row input{width:auto;margin:0;accent-color:var(--amber);}
+  .card-edit-select{font-size:12.5px;padding:6px 6px;max-width:110px;}
+  .card-edit-actions{display:flex;gap:8px;}
+  .card-edit-actions .btn{flex:1;padding:8px 0;font-size:13px;}
+
+  .actions{display:flex;gap:10px;margin-top:6px;}
+  .actions .btn{flex:1;}
+  #confirm-clear{
+    display:none;margin-top:10px;background:rgba(168,91,74,0.1);
+    border:1px solid var(--danger);border-radius:8px;padding:12px;font-size:13px;
+  }
+  #confirm-clear .row2{display:flex;gap:10px;margin-top:8px;}
+  #export-panel{margin-top:14px;}
+  #export-text{
+    width:100%;min-height:220px;background:var(--card);color:var(--ink-text);
+    border:1px solid var(--card-edge);border-radius:6px;
+    font-family:'JetBrains Mono',monospace;font-size:12px;padding:10px;white-space:pre-wrap;
+  }
+  #export-panel .row{margin-top:8px;}
+  #storage-note{
+    font-size:11.5px;color:var(--muted);margin-top:18px;text-align:center;line-height:1.5;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important;transition:none !important;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>网址分类柜</h1>
+    <p class="sub">粘贴网址，自动识别归到对应抽屉；认不出的，你教它一次，下次就记住了。</p>
+    <p class="meta" id="meta-line">加载中…</p>
+  </header>
+
+  <section class="slot">
+    <input id="url-input" type="text" placeholder="粘贴网址…" autocomplete="off">
+    <input id="note-input" type="text" placeholder="备注（可选）" autocomplete="off">
+    <label class="vpn-toggle">
+      <input type="checkbox" id="vpn-checkbox">
+      <span>需要VPN才能访问</span>
+    </label>
+    <div class="row">
+      <span id="suggest-status">输入网址后自动识别分类</span>
+      <select id="category-select"></select>
+    </div>
+    <button class="btn btn-primary" id="archive-btn">归档</button>
+    <div id="error-flash"></div>
+  </section>
+
+  <div id="drawers"></div>
+
+  <div class="actions" id="bottom-actions">
+    <button class="btn btn-ghost" id="export-btn">导出文本</button>
+    <button class="btn btn-danger" id="clear-btn">清空全部</button>
+  </div>
+
+  <div id="confirm-clear">
+    确定要清空所有卡片吗？这个操作无法撤回。
+    <div class="row2">
+      <button class="btn btn-ghost" id="cancel-clear-btn" style="flex:1;">取消</button>
+      <button class="btn btn-danger" id="confirm-clear-btn" style="flex:1;">确认清空</button>
+    </div>
+  </div>
+
+  <div id="export-panel" style="display:none;">
+    <textarea id="export-text" readonly></textarea>
+    <div class="row">
+      <button class="btn btn-ghost" id="copy-btn">复制全部</button>
+      <button class="btn btn-ghost" id="close-export-btn">收起</button>
+    </div>
+  </div>
+
+  <p id="storage-note">数据存在这个浏览器本地（localStorage），换设备或换浏览器不会同步，清浏览器数据会清空。</p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var BOOKMARKS_KEY = 'ysxUrlClassifier_bookmarks_v1';
+  var RULES_KEY = 'ysxUrlClassifier_learnedRules_v1';
+
+  var CATEGORIES = [
+    {key:'漫画', tag:'条漫 / 韩漫 / 汉化组'},
+    {key:'小说', tag:'文字向，慢慢啃'},
+    {key:'广播剧', tag:'耳朵收听'},
+    {key:'视频', tag:'动起来的'},
+    {key:'二次元', tag:'图志 & 同人'},
+    {key:'工具', tag:'梯子 / 搜索 / 杂项'},
+    {key:'其他', tag:'暂时没归类'}
+  ];
+  var CATEGORY_KEYS = CATEGORIES.map(function(c){ return c.key; });
+
+  var BUILTIN_RULES = {
+    '漫画': ['18comic','jmcomicne','comic18j','manwaba','mwai.cc','manwatw','mydsfjappdod','picamanhua','mangacopy','kalamanhua','ydanmh'],
+    '小说': ['haitangbook','ao3'],
+    '广播剧': ['shuyinfm','sodavoice','pan88.cc','feishu'],
+    '视频': ['jauqcm','yinghua14','acgxbus','seedhub'],
+    '二次元': ['pixiv','fantia','poipiku'],
+    '工具': ['9kqz23b19z','221345.xyz','xawrwu','yandex','acgs.one']
+  };
+
+  /* 每行：[网址, 分类, 备注, 是否需要VPN] */
+  var SEED_DATA = [
+    ['https://xn--9kqz23b19z.com/#/register?code=G9VyK193','工具','VPN充值（注册码 G9VyK193）',false],
+    ['https://18comic.vip','漫画','禁漫天堂',true],
+    ['https://jmcomicne.net/','漫画','禁漫天堂',true],
+    ['https://comic18j-robo.me/','漫画','禁漫天堂（不用VPN）',false],
+    ['https://4275.com/xawrwu','工具','nekobox 下载',false],
+    ['https://manwaba.cc/','漫画','漫蛙',false],
+    ['https://www.mwai.cc/rank/','漫画','漫蛙',false],
+    ['https://www.manwatw.cc/','漫画','漫蛙',false],
+    ['https://mydsfjappdod.cc/app-release-1.1.20.apk','漫画','漫蛙安装包',false],
+    ['https://www.picamanhua.com','漫画','哔咔',false],
+    ['https://ao3rc.hyf9588.tech/','小说','AO3',false],
+    ['https://ao3-cn.top/','小说','AO3',false],
+    ['https://www.yandex.com/','工具','搜索引擎',false],
+    ['http://4275.com/jauqcm','视频','番喜视频安装包',false],
+    ['https://www.yinghua14.com/','视频','樱花视频',false],
+    ['https://acgxbus.com/hanime/','视频','里番',true],
+    ['https://ydanmh.com/','漫画','一耽',false],
+    ['https://haitangbook.com','小说','海棠文学城',false],
+    ['https://www.shuyinfm.com/guangboju/','广播剧','书音广播剧',false],
+    ['https://seedhub.pro','视频','视频下载',false],
+    ['https://dh.221345.xyz','工具','免费VPN获取',false],
+    ['https://m.sodavoice.com/zh/1/category/9','广播剧','soda广播剧',false],
+    ['https://pan88.cc/','广播剧','搜索广播剧',false],
+    ['https://my.feishu.cn/share/base/query/shrcnalxWt6VFN480RzFVTs6ipb','广播剧','广播剧资源表',false],
+    ['https://game.acgs.one/','工具','galgame搜索',true],
+    ['https://spotlight.fantia.jp/','二次元','fantia',true],
+    ['https://www.mangacopy.com/h5/index','漫画','拷贝漫画',true],
+    ['https://pixiv.net','二次元','pixiv',true],
+    ['https://blog.fc2.com/cn/','其他','fc2博客',true],
+    ['https://poipiku.com','二次元','破皮裤（色图）',false],
+    ['https://www.kalamanhua.com/','漫画','卡拉漫画',false]
+  ];
+
+  var bookmarks = [];
+  var learnedRules = {};
+  var lastAddedId = null;
+  var editingIds = {};
+
+  function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+  function normalizeUrl(raw){
+    raw = (raw||'').trim();
+    if(!/^https?:\/\//i.test(raw)){ raw = 'https://'+raw; }
+    return raw;
+  }
+  function extractHostname(raw){
+    try{ return new URL(normalizeUrl(raw)).hostname.replace(/^www\./,''); }
+    catch(e){ return raw; }
+  }
+  function detectCategory(rawUrl){
+    var host = extractHostname(rawUrl);
+    if(host && learnedRules[host]){ return learnedRules[host]; }
+    var lower = rawUrl.toLowerCase();
+    for(var i=0;i<CATEGORY_KEYS.length;i++){
+      var cat = CATEGORY_KEYS[i];
+      var patterns = BUILTIN_RULES[cat];
+      if(!patterns) continue;
+      for(var j=0;j<patterns.length;j++){
+        if(lower.indexOf(patterns[j]) !== -1){ return cat; }
+      }
+    }
+    return null;
+  }
+  function fmtDate(iso){
+    try{
+      var d = new Date(iso);
+      return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    }catch(e){ return ''; }
+  }
+
+  /* ---------- 本地存储（localStorage） ---------- */
+  function loadBookmarksSync(){
+    try{
+      var raw = localStorage.getItem(BOOKMARKS_KEY);
+      if(raw) return JSON.parse(raw);
+      return null;
+    }catch(e){ return null; }
+  }
+  function saveBookmarks(){
+    try{ localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks)); }
+    catch(e){ showError('保存失败：浏览器存储不可用，或者空间满了。'); }
+  }
+  function loadLearnedRulesSync(){
+    try{
+      var raw = localStorage.getItem(RULES_KEY);
+      if(raw) return JSON.parse(raw);
+      return {};
+    }catch(e){ return {}; }
+  }
+  function saveLearnedRules(){
+    try{ localStorage.setItem(RULES_KEY, JSON.stringify(learnedRules)); }
+    catch(e){ /* 不影响主流程 */ }
+  }
+
+  function showError(msg){
+    var el = document.getElementById('error-flash');
+    el.textContent = msg;
+    setTimeout(function(){ if(el.textContent===msg) el.textContent=''; }, 4000);
+  }
+
+  function populateSelect(selectEl, selected){
+    selectEl.innerHTML = '';
+    CATEGORIES.forEach(function(c){
+      var opt = document.createElement('option');
+      opt.value = c.key; opt.textContent = c.key;
+      if(c.key === selected) opt.selected = true;
+      selectEl.appendChild(opt);
+    });
+  }
+
+  /* ---------- 复制 ---------- */
+  function fallbackCopy(text, cb){
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta);
+    if(cb) cb();
+  }
+  function copyText(text, btn){
+    var old = btn.textContent;
+    function done(){ btn.textContent='已复制'; setTimeout(function(){ btn.textContent=old; },1200); }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done).catch(function(){ fallbackCopy(text, done); });
+    }else{
+      fallbackCopy(text, done);
+    }
+  }
+
+  /* ---------- 渲染 ---------- */
+  function render(){
+    var metaLine = document.getElementById('meta-line');
+    var catsUsed = {};
+    bookmarks.forEach(function(b){ catsUsed[b.category]=true; });
+    metaLine.textContent = '共 '+bookmarks.length+' 张卡片 · '+Object.keys(catsUsed).length+' 个分类';
+
+    var drawersEl = document.getElementById('drawers');
+
+    var openState = {};
+    drawersEl.querySelectorAll('details.drawer').forEach(function(d){
+      var nameEl = d.querySelector('.drawer__name');
+      if(nameEl){ openState[nameEl.textContent] = d.open; }
+    });
+
+    drawersEl.innerHTML = '';
+
+    if(bookmarks.length === 0){
+      var empty = document.createElement('div');
+      empty.className = 'empty-msg';
+      empty.textContent = '卡片柜空荡荡的，先贴一个网址进来吧。';
+      drawersEl.appendChild(empty);
+      return;
+    }
+
+    CATEGORIES.forEach(function(cat){
+      var items = bookmarks.filter(function(b){ return b.category===cat.key; });
+      if(items.length===0) return;
+
+      var det = document.createElement('details');
+      det.className = 'drawer';
+      det.open = !!openState[cat.key];
+
+      var sum = document.createElement('summary');
+      sum.className = 'drawer__head';
+      sum.innerHTML =
+        '<span class="drawer__name">'+cat.key+'</span>'+
+        '<span class="drawer__tag">'+cat.tag+'</span>'+
+        '<span class="drawer__count">'+items.length+'</span>';
+      det.appendChild(sum);
+
+      var body = document.createElement('div');
+      body.className = 'drawer__body';
+
+      items.forEach(function(b){
+        body.appendChild(editingIds[b.id] ? buildEditCard(b) : buildViewCard(b));
+      });
+
+      det.appendChild(body);
+      drawersEl.appendChild(det);
+    });
+  }
+
+  function buildViewCard(b){
+    var card = document.createElement('article');
+    card.className = 'card' + (b.id===lastAddedId ? ' just-added' : '');
+    card.setAttribute('data-id', b.id);
+
+    var top = document.createElement('div');
+    top.className = 'card__top';
+
+    var a = document.createElement('a');
+    a.className = 'card__domain';
+    a.href = b.url; a.target = '_blank'; a.rel = 'noopener';
+    a.textContent = b.domain;
+    top.appendChild(a);
+
+    if(b.needsVpn){
+      var badge = document.createElement('span');
+      badge.className = 'badge-vpn';
+      badge.textContent = 'VPN';
+      top.appendChild(badge);
+    }
+
+    var copyBtn = document.createElement('button');
+    copyBtn.className = 'card__copy';
+    copyBtn.setAttribute('aria-label','复制网址');
+    copyBtn.textContent = '复制';
+    copyBtn.addEventListener('click', function(){ copyText(b.url, copyBtn); });
+    top.appendChild(copyBtn);
+
+    var editBtn = document.createElement('button');
+    editBtn.className = 'card__edit';
+    editBtn.setAttribute('aria-label','编辑或删除');
+    editBtn.textContent = '✏️';
+    editBtn.addEventListener('click', function(){ editingIds[b.id]=true; render(); });
+    top.appendChild(editBtn);
+
+    card.appendChild(top);
+
+    var urlLine = document.createElement('div');
+    urlLine.className = 'card__url';
+    urlLine.textContent = b.url;
+    card.appendChild(urlLine);
+
+    if(b.note){
+      var noteEl = document.createElement('div');
+      noteEl.className = 'card__note';
+      noteEl.textContent = b.note;
+      card.appendChild(noteEl);
+    }
+
+    var foot = document.createElement('div');
+    foot.className = 'card__foot';
+    var catTag = document.createElement('span');
+    catTag.className = 'card__cat-tag';
+    catTag.textContent = b.category;
+    var dateEl = document.createElement('span');
+    dateEl.className = 'card__date';
+    dateEl.textContent = fmtDate(b.addedAt);
+    foot.appendChild(catTag);
+    foot.appendChild(dateEl);
+    card.appendChild(foot);
+
+    return card;
+  }
+
+  function buildEditCard(b){
+    var card = document.createElement('article');
+    card.className = 'card editing';
+    card.setAttribute('data-id', b.id);
+
+    var urlInput = document.createElement('input');
+    urlInput.className = 'card-edit-input';
+    urlInput.value = b.url;
+    card.appendChild(urlInput);
+
+    var noteInput = document.createElement('input');
+    noteInput.className = 'card-edit-input';
+    noteInput.value = b.note || '';
+    noteInput.placeholder = '备注';
+    card.appendChild(noteInput);
+
+    var vpnLabel = document.createElement('label');
+    vpnLabel.className = 'edit-vpn-row';
+    var vpnCheckbox = document.createElement('input');
+    vpnCheckbox.type = 'checkbox';
+    vpnCheckbox.checked = !!b.needsVpn;
+    var vpnText = document.createElement('span');
+    vpnText.textContent = '需要VPN才能访问';
+    vpnLabel.appendChild(vpnCheckbox);
+    vpnLabel.appendChild(vpnText);
+    card.appendChild(vpnLabel);
+
+    var row = document.createElement('div');
+    row.className = 'card-edit-row';
+    var catSelect = document.createElement('select');
+    catSelect.className = 'card-edit-select';
+    populateSelect(catSelect, b.category);
+    row.appendChild(catSelect);
+    card.appendChild(row);
+
+    var actions = document.createElement('div');
+    actions.className = 'card-edit-actions';
+
+    var saveBtn = document.createElement('button');
+    saveBtn.className = 'btn btn-primary';
+    saveBtn.textContent = '保存';
+    saveBtn.addEventListener('click', function(){
+      saveEdit(b.id, urlInput.value, noteInput.value, catSelect.value, vpnCheckbox.checked);
+    });
+
+    var delBtn = document.createElement('button');
+    delBtn.className = 'btn btn-danger';
+    delBtn.textContent = '删除';
+    delBtn.addEventListener('click', function(){
+      removeEntry(b.id);
+    });
+
+    var cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn btn-ghost';
+    cancelBtn.textContent = '取消';
+    cancelBtn.addEventListener('click', function(){
+      delete editingIds[b.id];
+      render();
+    });
+
+    actions.appendChild(saveBtn);
+    actions.appendChild(delBtn);
+    actions.appendChild(cancelBtn);
+    card.appendChild(actions);
+
+    return card;
+  }
+
+  function removeEntry(id){
+    bookmarks = bookmarks.filter(function(b){ return b.id!==id; });
+    delete editingIds[id];
+    saveBookmarks();
+    render();
+  }
+
+  function saveEdit(id, urlVal, noteVal, catVal, needsVpnVal){
+    var entry = bookmarks.find(function(b){ return b.id===id; });
+    if(!entry) return;
+    var newUrl = normalizeUrl(urlVal || entry.url);
+    var newHost = extractHostname(newUrl);
+    entry.url = newUrl;
+    entry.domain = newHost;
+    entry.note = (noteVal||'').trim();
+    entry.needsVpn = !!needsVpnVal;
+    if(catVal !== entry.category){
+      entry.category = catVal;
+      if(newHost){ learnedRules[newHost] = catVal; saveLearnedRules(); }
+    }
+    delete editingIds[id];
+    saveBookmarks();
+    render();
+  }
+
+  /* ---------- 归档新卡片 ---------- */
+  function updateSuggestion(){
+    var raw = document.getElementById('url-input').value.trim();
+    var statusEl = document.getElementById('suggest-status');
+    var selectEl = document.getElementById('category-select');
+    if(!raw){
+      statusEl.className = '';
+      statusEl.textContent = '输入网址后自动识别分类';
+      populateSelect(selectEl, '其他');
+      return;
+    }
+    var suggested = detectCategory(raw);
+    if(suggested){
+      statusEl.className = 'matched';
+      statusEl.textContent = '识别为「'+suggested+'」，不对的话右边可以改';
+      populateSelect(selectEl, suggested);
+    }else{
+      statusEl.className = 'unmatched';
+      statusEl.textContent = '没认出这个网站，选一个分类，我记住它';
+      populateSelect(selectEl, '其他');
+    }
+  }
+
+  function archiveEntry(){
+    var urlInput = document.getElementById('url-input');
+    var noteInput = document.getElementById('note-input');
+    var selectEl = document.getElementById('category-select');
+    var vpnCheckbox = document.getElementById('vpn-checkbox');
+
+    var raw = urlInput.value.trim();
+    if(!raw){ showError('先输入网址吧。'); return; }
+
+    var url = normalizeUrl(raw);
+    var host = extractHostname(raw);
+    var chosen = selectEl.value || '其他';
+    var suggested = detectCategory(raw);
+
+    if(host && (chosen !== suggested)){
+      learnedRules[host] = chosen;
+      saveLearnedRules();
+    }
+
+    var entry = {
+      id: uid(), url: url, domain: host, category: chosen,
+      note: noteInput.value.trim(), needsVpn: vpnCheckbox.checked,
+      addedAt: new Date().toISOString()
+    };
+    bookmarks.unshift(entry);
+    lastAddedId = entry.id;
+    saveBookmarks();
+
+    urlInput.value = ''; noteInput.value = ''; vpnCheckbox.checked = false;
+    updateSuggestion();
+    render();
+
+    setTimeout(function(){
+      var card = document.querySelector('[data-id="'+entry.id+'"]');
+      if(card){
+        var det = card.closest('details');
+        if(det) det.open = true;
+        card.scrollIntoView({block:'nearest', behavior:'smooth'});
+      }
+    }, 30);
+    setTimeout(function(){ lastAddedId=null; render(); }, 1500);
+  }
+
+  /* ---------- 导出 / 清空 ---------- */
+  function buildExportText(){
+    var out = [];
+    CATEGORIES.forEach(function(cat){
+      var items = bookmarks.filter(function(b){ return b.category===cat.key; });
+      if(items.length===0) return;
+      out.push('【'+cat.key+'】');
+      items.forEach(function(b){ out.push('- '+(b.note ? b.note+'：' : '')+b.url+(b.needsVpn ? '（需要VPN）' : '')); });
+      out.push('');
+    });
+    return out.join('\n').trim();
+  }
+
+  function wireUp(){
+    document.getElementById('url-input').addEventListener('input', updateSuggestion);
+    document.getElementById('archive-btn').addEventListener('click', archiveEntry);
+
+    document.getElementById('export-btn').addEventListener('click', function(){
+      var panel = document.getElementById('export-panel');
+      document.getElementById('export-text').value = buildExportText();
+      panel.style.display = panel.style.display==='none' ? 'block' : 'none';
+    });
+    document.getElementById('close-export-btn').addEventListener('click', function(){
+      document.getElementById('export-panel').style.display = 'none';
+    });
+    document.getElementById('copy-btn').addEventListener('click', function(){
+      copyText(document.getElementById('export-text').value, document.getElementById('copy-btn'));
+    });
+
+    document.getElementById('clear-btn').addEventListener('click', function(){
+      document.getElementById('confirm-clear').style.display = 'block';
+    });
+    document.getElementById('cancel-clear-btn').addEventListener('click', function(){
+      document.getElementById('confirm-clear').style.display = 'none';
+    });
+    document.getElementById('confirm-clear-btn').addEventListener('click', function(){
+      bookmarks = [];
+      editingIds = {};
+      saveBookmarks();
+      document.getElementById('confirm-clear').style.display = 'none';
+      render();
+    });
+  }
+
+  function init(){
+    learnedRules = loadLearnedRulesSync();
+    var loaded = loadBookmarksSync();
+    if(loaded === null){
+      bookmarks = SEED_DATA.map(function(row){
+        return {
+          id: uid(), url: row[0], domain: extractHostname(row[0]),
+          category: row[1], note: row[2], needsVpn: !!row[3], addedAt: new Date().toISOString()
+        };
+      });
+      saveBookmarks();
+    }else{
+      bookmarks = loaded;
+    }
+    populateSelect(document.getElementById('category-select'), '其他');
+    wireUp();
+    render();
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+</body>
+</html>
